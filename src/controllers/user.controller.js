@@ -511,7 +511,7 @@ const searchNewFriends = async (req, res, next) => {
   }
   try {
     const users = await User.find({
-      _id: { $ne: _id, $nin: req.user.friends },
+      _id: { $ne: req.user._id, $nin: req.user.friends },
       username: { $regex: username, $options: "i" },
     }).select(["-password", "-__v", "-email"]);
     if (!users) {

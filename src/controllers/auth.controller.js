@@ -108,7 +108,9 @@ const login = async (req, res, next) => {
   }
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      $or: [{ email: email }, { username: email }],
+    });
     if (!user) {
       incrementFailedAttempts(email);
       return createError("Invalid email or password.", 401, "fail", next);

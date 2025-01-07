@@ -20,7 +20,6 @@ const protectedRoute = async (req, res, next) => {
     const user = await User.findById(decodedToken.userId).select([
       "-password",
       "-__v",
-      "-email",
     ]);
     if (!user) {
       return createError("Unauthorized - Login again", 401, "error", next);

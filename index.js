@@ -9,8 +9,8 @@ import helmet from "helmet";
 import cors from "cors";
 import { createError } from "./src/utils/utils.js";
 import GlobalErrorHandler from "./src/middleware/GlobalErrorHandler.middleware.js";
-// Create the Express app
-const app = express();
+import { server, app } from "./src/lib/socket.js";
+
 const port = process.env.PORT || 3002;
 
 // Load environment variables
@@ -53,7 +53,7 @@ app.use(GlobalErrorHandler);
 const startServer = async () => {
   try {
     await connectDB(); // Ensure DB connection first
-    app.listen(port, () => {
+    server.listen(port, () => {
       console.log(`Server is running on port ${port}`);
     });
   } catch (error) {
