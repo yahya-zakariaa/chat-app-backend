@@ -25,6 +25,7 @@ app.use(
       "http://d2eb9b52af3e:3000",
       "http://127.0.0.1:3000",
       "http://172.17.0.120:3000",
+      "https://chat-app-ten-ruddy.vercel.app",
     ],
     credentials: true, // Allow sending cookies
   })
