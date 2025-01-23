@@ -5,14 +5,19 @@ export const generateJWT = (userId, res) => {
   });
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
+    secure: process.env.NODE_ENV !== "production",
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: "strict",
+    sameSite: "None",
   });
   return token;
 };
 
-export const createError = (msg = "Something went wrong", status = 500, statusType = "error", next) => {
+export const createError = (
+  msg = "Something went wrong",
+  status = 500,
+  statusType = "error",
+  next
+) => {
   const error = new Error(msg);
   error.status = status;
   error.statusType = statusType;

@@ -110,7 +110,12 @@ const login = async (req, res, next) => {
   try {
     const user = await User.findOne({
       $or: [{ email: email }, { username: email }],
+    }).populate({
+      path: "friends._id",
+      select: "-password -__v -email -createdAt -updatedAt",
+      strictPopulate: false,
     });
+
     if (!user) {
       incrementFailedAttempts(email);
       return createError("Invalid email or password.", 401, "fail", next);
@@ -125,6 +130,18 @@ const login = async (req, res, next) => {
     resetFailedAttempts(email);
 
     const token = generateJWT(user._id, res);
+    const friendsList =
+    user?.friends?.map((friend) => ({
+        ...friend._id._doc,
+        friendshipDate: new Date(friend.friendshipDate).toLocaleDateString(
+          "en-EG",
+          {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }
+        ),
+      })) || [];
     return res.status(200).json({
       status: "success",
       token,
@@ -133,6 +150,8 @@ const login = async (req, res, next) => {
           id: user._id,
           username: user.username,
           email: user.email,
+          bio: user.bio || "",
+          friends: friendsList || [],
           avatar: user.avatar || null,
           createdAt: user.createdAt,
         },
@@ -154,14 +173,6 @@ const logout = (req, res, next) => {
 };
 
 const checkAuth = (req, res, next) => {
-  if (!req.user) {
-    return createError(
-      "Your session has expired - Login again",
-      401,
-      "fail",
-      next
-    );
-  }
   res.status(200).json({ status: "success", data: { user: req.user } });
 };
 

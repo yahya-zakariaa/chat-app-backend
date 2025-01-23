@@ -68,7 +68,10 @@ const getFriendRequests = async (req, res, next) => {
       status: "pending",
     })
       .sort({ createdAt: -1 })
-      .populate({ path: "senderId", select: "-password -__v -email" })
+      .populate({
+        path: "senderId",
+        select: "-password -__v -email -createdAt -updatedAt",
+      })
       .exec();
 
     if (friendRequests.length < 1) {
@@ -78,11 +81,24 @@ const getFriendRequests = async (req, res, next) => {
         message: "No friend requests yet",
       });
     }
+    const requests = friendRequests.map((request) => ({
+      _id: request._id.toString(),
+      userId: request.senderId._id.toString(),
+      username: request.senderId.username,
+      avatar: request.senderId.avatar,
+      friends: request.senderId.friends,
+      bio: request.senderId.bio,
+      createdAt: new Date(request.createdAt).toLocaleDateString("en-EG", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    }));
     return res.status(200).json({
       status: "success",
       data: {
-        requests: friendRequests,
-        total: friendRequests.length,
+        requests: requests,
+        total: requests.length,
       },
     });
   } catch (error) {
@@ -335,9 +351,10 @@ const cancelFriendRequest = async (req, res, next) => {
 const removeFriend = async (req, res, next) => {
   const { friendId } = req.params;
   const { _id } = req.user;
+
   if (!friendId) {
     return createError(
-      "client side error - Please provide friend id",
+      "Client-side error - Please provide friend ID",
       400,
       "fail",
       next
@@ -345,32 +362,38 @@ const removeFriend = async (req, res, next) => {
   }
 
   try {
-    const user = await User.findById(_id);
+    const [user, friend] = await Promise.all([
+      User.findById(_id),
+      User.findById(friendId),
+    ]);
+
     if (!user) {
+      return createError("Login again - User not found", 401, "fail", next);
+    }
+    if (!friend) {
       return createError(
-        "Something went wrong - Login again",
-        401,
+        "User not found - Invalid friend ID",
+        404,
         "fail",
         next
       );
     }
-    const friend = await User.findById(friendId);
-    if (!friend) {
-      return createError("User not found - Try again", 400, "fail", next);
-    }
-    if (!user.friends.includes(friendId)) {
+    const isFriend = user.friends
+      .map((u) => u._id.toString())
+      .includes(friendId);
+    if (!isFriend) {
       return createError("User is not your friend", 400, "fail", next);
     }
-    if (friend.friends.includes(_id)) {
-      friend.friends.pull(_id);
-      await friend.save();
-      user.friends.pull(friendId);
-      await user.save();
-      return res.status(200).json({
-        status: "success",
-        message: "Friend removed",
-      });
-    }
+
+    user.friends.pull(friendId);
+    friend.friends.pull(_id);
+
+    await Promise.all([user.save(), friend.save()]);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Friend removed successfully",
+    });
   } catch (error) {
     return createError(
       error.message || "Something went wrong - Try again",
@@ -380,6 +403,7 @@ const removeFriend = async (req, res, next) => {
     );
   }
 };
+
 const updateProfileAvatar = async (req, res, next) => {
   const { avatar } = req.body;
   const { _id } = req.user;
@@ -538,7 +562,7 @@ const discoverNewFriends = async (req, res, next) => {
   try {
     let users = await User.find({
       _id: { $ne: _id, $nin: req.user.friends },
-    }).select("-password -__v -email");
+    }).select("-password -__v -email -createdAt -updatedAt");
 
     const PendingRequests = await FriendRequest.find({
       $or: [{ senderId: _id }, { receviedId: _id }],

@@ -31,7 +31,7 @@ router.post(
   protectedRoute,
   rejectFriendRequest
 );
-router.delete("/remove-friend/friendId", protectedRoute, removeFriend);
+router.delete("/remove-friend/:friendId", protectedRoute, removeFriend);
 router.delete(
   "/cancel-friend-request/:userId",
   protectedRoute,

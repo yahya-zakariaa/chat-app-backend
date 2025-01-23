@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const GlobalErrorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const status = err.status || "error";
-  console.log(err);
+  console.log(err.message, err.stack);
 
   if (err.name === "CastError") {
     return res.status(400).json({
