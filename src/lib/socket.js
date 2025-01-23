@@ -16,6 +16,8 @@ const io = new Server(server, {
       "http://172.17.0.120:3000",
     ],
     credentials: true,
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin"],
   },
 });
 
