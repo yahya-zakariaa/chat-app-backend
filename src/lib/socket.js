@@ -14,10 +14,12 @@ const io = new Server(server, {
       "http://d2eb9b52af3e:3000",
       "http://127.0.0.1:3000",
       "http://172.17.0.120:3000",
+      "https://chat-app-ten-ruddy.vercel.app",
     ],
     credentials: true,
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin"],
+    transports: ["websocket", "polling"],
   },
 });
 
@@ -65,13 +67,18 @@ const getFriendsList = async (userId) => {
 // Notify friends when a user's status changes
 const notifyFriends = async (userId, status) => {
   if (!isValidUserId(userId)) return;
+  console.log("user:", userId, "status:", status);
+  console.log("onlineUsers:", onlineUsers);
 
   try {
     const friendsList = await getFriendsList(userId);
+    if (!friendsList?.length)
+      return console.log("No friends found for userId:", userId);
     friendsList.forEach((friendId) => {
       const friendSocketId = onlineUsers.get(friendId);
-      if (friendSocketId) {
+      if (friendSocketId && friendSocketId !== userId) {
         io.to(friendSocketId).emit("user-status-update", { userId, status });
+        console.log("send user-status-update to:", friendId);
       }
     });
   } catch (error) {
@@ -91,16 +98,18 @@ const handleUserConnection = async (userId, socketId, status) => {
       );
     } else if (status === "offline") {
       onlineUsers.delete(userId);
-      console.log(`[Disconnection] User ${userId} disconnected`);
-      notifyFriends(userId, status);
+      console.log(
+        `[Disconnection] User ${userId} disconnected with socketId ${socketId}`
+      );
+      await notifyFriends(userId, status);
       return;
     }
 
     if (status === "online") {
       const friendsList = await getFriendsList(userId);
       const onlineFriends = friendsList.filter((id) => onlineUsers.has(id));
-      io.to(socketId).emit("get-online-users", onlineFriends);
-      notifyFriends(userId, status);
+      io.to(socketId).emit("get-online-users", onlineFriends || []);
+      await notifyFriends(userId, status);
     }
   } catch (error) {
     console.error(`[Error] Handling user connection for ${userId}:`, error);
@@ -119,7 +128,6 @@ io.on("connection", async (socket) => {
 
   // Handle user connection
   handleUserConnection(userId, socket.id, "online");
-  console.log(onlineUsers);
 
   socket.on("disconnect", async () => {
     handleUserConnection(userId, socket.id, "offline");

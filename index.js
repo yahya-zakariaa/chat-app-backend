@@ -39,7 +39,7 @@ app.use(express.urlencoded({ limit: "5mb", extended: true }));
 
 // Routes
 app.use("/api/auth", authRoute);
-app.use("/api/message", messageRoute);
+app.use("/api/chats", messageRoute);
 app.use("/api/user", userRoute);
 
 // Handle 404 for non-existing routes

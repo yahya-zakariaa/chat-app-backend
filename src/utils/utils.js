@@ -1,14 +1,28 @@
 import jwt from "jsonwebtoken";
-export const generateJWT = (userId, res) => {
+export const generateJWT = (userId, res, next) => {
+  if (!userId) {
+    return createError("User not found", 404, "error", next);
+  }
+
   const token = jwt.sign({ userId }, process.env.JWT_SECRET_KEY, {
     expiresIn: "7d",
   });
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: "None",
-  });
+
+  try {
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "None",
+    });
+  } catch (error) {
+    return createError(
+      error.message || "Something went wrong",
+      500,
+      "error",
+      next
+    );
+  }
   return token;
 };
 

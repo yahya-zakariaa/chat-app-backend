@@ -115,13 +115,13 @@ const login = async (req, res, next) => {
       select: "-password -__v -email -createdAt -updatedAt",
       strictPopulate: false,
     });
-
     if (!user) {
       incrementFailedAttempts(email);
       return createError("Invalid email or password.", 401, "fail", next);
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       incrementFailedAttempts(email);
       return createError("Invalid email or password.", 401, "fail", next);
@@ -129,9 +129,10 @@ const login = async (req, res, next) => {
 
     resetFailedAttempts(email);
 
-    const token = generateJWT(user._id, res);
+    const token = await generateJWT(user?._id, res);
+
     const friendsList =
-    user?.friends?.map((friend) => ({
+      user?.friends?.map((friend) => ({
         ...friend._id._doc,
         friendshipDate: new Date(friend.friendshipDate).toLocaleDateString(
           "en-EG",
@@ -142,6 +143,7 @@ const login = async (req, res, next) => {
           }
         ),
       })) || [];
+
     return res.status(200).json({
       status: "success",
       token,
